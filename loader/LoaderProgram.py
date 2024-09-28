@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from consts import RPC_URL
+from consts import RPC_URL, ETH_UNISWAPV3_USDC_ETH_POOL_ADDR
 from util import is_valid_tx_hash
 from util.RedisClient import RedisClient
 from loader.web3_loader.Web3TxnLoader import Web3TxnLoader
@@ -20,10 +20,6 @@ class LoaderProgram:
         self.last_processed_block_number = None
         self.refresh_sec = 10
 
-    async def process_invalid_hash(self, hash: str):
-        payload = {"valid": False}
-        logging.info(f"invalid {hash=}, {payload=}")
-
     async def process_valid_hash(self, hash: str, txn_receipt: TxReceipt):
         gas_in_eth = self.web3_client.from_wei(
             txn_receipt["effectiveGasPrice"], "ether"
@@ -35,10 +31,14 @@ class LoaderProgram:
             "timestamp": timestamp,
             "gas_in_eth": gas_in_eth,
         }
-        logging.info(f"valid {hash=}, {payload=}")
+        await self.redis.hset_json(
+            ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), payload
+        )
+        logging.info(f"valid hash processed {hash=}, {payload=}")
 
     async def process_hash(self, hash: str):
         if not is_valid_tx_hash(hash):
+            logging.info(f"skip invalid {hash=}")
             return
         txn_receipt = await self.web3_loader.get_transaction_receipt(hash)
         is_valid_transaction = await self.web3_verifier.verify_transaction_receipt(
@@ -46,8 +46,6 @@ class LoaderProgram:
         )
         if is_valid_transaction:
             await self.process_valid_hash(hash, txn_receipt)
-        else:
-            await self.process_invalid_hash(hash)
 
     async def process_transactions(self, transactions: list[dict]):
         hash_to_payload = dict()
@@ -65,7 +63,15 @@ class LoaderProgram:
                 "timestamp": timestamp,
                 "gas_in_eth": gas_in_eth,
             }
-        logging.info(hash_to_payload)
+        await asyncio.gather(
+            *[
+                self.redis.hset_json(
+                    ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), payload
+                )
+                for hash, payload in hash_to_payload.items()
+            ]
+        )
+        logging.info(f"published {hash_to_payload=}")
 
     async def get_latest_block_number(self) -> int:
         latest_block = await self.web3_client.eth.get_block("latest")
