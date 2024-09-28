@@ -1,15 +1,15 @@
 import asyncio
 import logging
 from util.RedisClient import RedisClient
-from loader.TransactionLoader import TransactionLoader
-from loader.TransactionVerifier import TransactionVerifier
+from loader.web3_loader.Web3TxnLoader import Web3TxnLoader
+from loader.web3_loader.Web3TxnVerifier import Web3TxnVerifier
 
 
 class LoaderProgram:
     def __init__(self):
         self.redis = RedisClient()
-        self.loader = TransactionLoader()
-        self.verifier = TransactionVerifier()
+        self.loader = Web3TxnLoader()
+        self.verifier = Web3TxnVerifier()
         self.refresh_sec = 5
 
     async def process_invalid_hash(hash: str):

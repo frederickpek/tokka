@@ -16,8 +16,8 @@ class EtherscanApi:
         address: str,
         page: int = 1,
         offset: int = 100,
-        startblock: int = 0,
-        endblock: int = 99999999,
+        start_block: int = 0,
+        end_block: int = 99999999,
         sort: str = "asc",
     ) -> dict:
         params = {
@@ -26,8 +26,8 @@ class EtherscanApi:
             "address": address,
             "page": page,
             "offset": offset,
-            "startblock": startblock,
-            "endblock": endblock,
+            "startblock": start_block,
+            "endblock": end_block,
             "sort": sort,
             "apikey": self.api_key,
         }
