@@ -1,4 +1,4 @@
-import httpx
+import aiohttp
 
 
 class EtherscanApi:
@@ -34,7 +34,7 @@ class EtherscanApi:
         return await self.request(params)
 
     async def request(self, params: dict) -> dict:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(self.base_url, params=params)
-            response.raise_for_status()
-            return response.json()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self.base_url, params=params) as response:
+                response.raise_for_status()
+                return await response.json()
