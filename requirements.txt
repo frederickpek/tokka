@@ -1,3 +1,5 @@
+web3
+aioredis
 asyncio
 fastapi
 uvicorn
