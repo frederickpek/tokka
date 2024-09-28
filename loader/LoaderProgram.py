@@ -6,6 +6,7 @@ from util.RedisClient import RedisClient
 from loader.web3_loader.Web3TxnLoader import Web3TxnLoader
 from loader.web3_loader.Web3TxnVerifier import Web3TxnVerifier
 from loader.etherscan_loader.EtherscanTxnLoader import EtherscanTxnLoader
+from loader.BinancePriceApi import BinancePriceApi
 from web3 import AsyncWeb3, AsyncHTTPProvider
 from web3.types import TxReceipt
 
@@ -13,6 +14,7 @@ from web3.types import TxReceipt
 class LoaderProgram:
     def __init__(self):
         self.redis = RedisClient()
+        self.bn_api = BinancePriceApi()
         self.etherscan_loader = EtherscanTxnLoader()
         self.web3_client = AsyncWeb3(AsyncHTTPProvider(RPC_URL))
         self.web3_loader = Web3TxnLoader(self.web3_client)
@@ -21,20 +23,19 @@ class LoaderProgram:
         self.refresh_sec = 10
 
     async def process_valid_hash(self, hash: str, txn_receipt: TxReceipt):
-        gas_in_eth = self.web3_client.from_wei(
-            txn_receipt["effectiveGasPrice"], "ether"
+        gas_in_eth = float(
+            self.web3_client.from_wei(txn_receipt["effectiveGasPrice"], "ether")
         )
         block = await self.web3_client.eth.get_block(txn_receipt["blockNumber"])
         timestamp = block["timestamp"]
-        payload = {
-            "valid": True,
-            "timestamp": timestamp,
-            "gas_in_eth": gas_in_eth,
-        }
-        await self.redis.hset_json(
-            ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), payload
+        eth_usdt_price = await self.bn_api.get_eth_usdt_price(
+            timestamp=int(timestamp * 1000)
         )
-        logging.info(f"valid hash processed {hash=}, {payload=}")
+        gas_in_usdt = gas_in_eth * eth_usdt_price
+        await self.redis.hset_json(
+            ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), gas_in_usdt
+        )
+        logging.info(f"valid hash processed {hash=}, {gas_in_usdt=}")
 
     async def process_hash(self, hash: str):
         if not is_valid_tx_hash(hash):
@@ -47,31 +48,20 @@ class LoaderProgram:
         if is_valid_transaction:
             await self.process_valid_hash(hash, txn_receipt)
 
-    async def process_transactions(self, transactions: list[dict]):
-        hash_to_payload = dict()
-        for txn in transactions:
-            hash = str(txn["hash"]).lower()
-            if hash in hash_to_payload:
-                continue
-            gas_price = int(txn["gasPrice"])
-            gas_used = int(txn["gasUsed"])
-            timestamp = int(txn["timeStamp"])
-            cost_in_wei = gas_used * gas_price
-            gas_in_eth = self.web3_client.from_wei(cost_in_wei, "ether")
-            hash_to_payload[hash] = {
-                "valid": True,
-                "timestamp": timestamp,
-                "gas_in_eth": gas_in_eth,
-            }
-        await asyncio.gather(
-            *[
-                self.redis.hset_json(
-                    ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), payload
-                )
-                for hash, payload in hash_to_payload.items()
-            ]
+    async def process_etherscan_transaction(self, hash: str, txn: dict):
+        gas_price = int(txn["gasPrice"])
+        gas_used = int(txn["gasUsed"])
+        timestamp = int(txn["timeStamp"])
+        cost_in_wei = gas_used * gas_price
+        gas_in_eth = float(self.web3_client.from_wei(cost_in_wei, "ether"))
+        eth_usdt_price = await self.bn_api.get_eth_usdt_price(
+            timestamp=int(timestamp * 1000)
         )
-        logging.info(f"published {hash_to_payload=}")
+        gas_in_usdt = gas_in_eth * eth_usdt_price
+        await self.redis.hset_json(
+            ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), gas_in_usdt
+        )
+        logging.info(f"periodic loop processed {hash=}, {gas_in_usdt=}")
 
     async def get_latest_block_number(self) -> int:
         latest_block = await self.web3_client.eth.get_block("latest")
@@ -90,13 +80,29 @@ class LoaderProgram:
                     )
                 else:
                     start_block = latest_block_number
+
                 transactions = await self.etherscan_loader.get_transactions(
                     start_block=start_block, end_block=latest_block_number
                 )
+
+                # filter duplicate hashes
+                hash_to_transactions = dict()
+                for txn in transactions:
+                    hash = str(txn["hash"]).lower()
+                    if hash in hash_to_transactions:
+                        continue
+                    hash_to_transactions[hash] = txn
+
                 logging.info(
-                    f"Loaded {len(transactions)} transactions form {start_block=} to {latest_block_number=}"
+                    f"Loaded {len(hash_to_transactions)} unique hashes form {start_block=} to {latest_block_number=}"
                 )
-                await self.process_transactions(transactions)
+
+                await asyncio.gather(
+                    *[
+                        self.process_etherscan_transaction(hash, txn)
+                        for hash, txn in hash_to_transactions.items()
+                    ]
+                )
                 self.last_processed_block_number = latest_block_number
             except Exception as err:
                 logging.exception(err)
