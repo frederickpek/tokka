@@ -1,0 +1,19 @@
+services:
+  redis:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+
+  main:
+    build: .
+    depends_on:
+      - redis
+    command: ["python", "main.py"]
+
+  app:
+    build: .
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"

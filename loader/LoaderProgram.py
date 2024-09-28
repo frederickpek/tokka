@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from util.RedisClient import RedisClient
 from loader.TransactionLoader import TransactionLoader
 from loader.TransactionVerifier import TransactionVerifier
@@ -21,17 +22,17 @@ class LoaderProgram:
         transaction = await self.loader.get_transaction(hash)
         valid_transaction = await self.verifier.verify_transaction(transaction)
         if valid_transaction:
-            print(f"valid transaction -- {hash}")
+            logging.info(f"valid transaction -- {hash}")
             await self.process_valid_hash(hash)
         else:
-            print(f"invalid transaction -- {hash}")
+            logging.info(f"invalid transaction -- {hash}")
             await self.process_invalid_hash(hash)
 
     async def loop(self):
         while True:
             try:
                 hash = "0x0"
-                self.process_hash(hash)
+                await self.process_hash(hash)
             except Exception as err:
                 pass
             await asyncio.sleep(self.refresh_sec)
