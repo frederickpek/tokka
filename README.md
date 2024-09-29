@@ -18,6 +18,9 @@ This loader subscribes to real-time updates for new transaction hashes requiring
 **Txn Api Client**
 The Transaction API Client handles user API requests by first attempting to serve data from the Redis cache. If a transaction hash is not cached, the client publishes it to the Web3 Pub/Sub Loader for further processing and verification.
 
+## Sample Logs
+![alt text](image-1.png)
+
 ## Requirements
 
 - Docker
