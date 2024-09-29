@@ -1,3 +1,4 @@
+import json
 import asyncio
 import logging
 from consts import RPC_URL, ETH_UNISWAPV3_USDC_ETH_POOL_ADDR
@@ -23,7 +24,8 @@ class LoaderProgram:
         self.refresh_sec = 10
 
     async def process_valid_hash(self, hash: str, txn_receipt: TxReceipt):
-        gas_in_eth = float(
+        gas_used = int(txn_receipt["gasUsed"])
+        effective_gas_price = float(
             self.web3_client.from_wei(txn_receipt["effectiveGasPrice"], "ether")
         )
         block = await self.web3_client.eth.get_block(txn_receipt["blockNumber"])
@@ -31,15 +33,25 @@ class LoaderProgram:
         eth_usdt_price = await self.bn_api.get_eth_usdt_price(
             timestamp=int(timestamp * 1000)
         )
-        gas_in_usdt = gas_in_eth * eth_usdt_price
+        gas_in_usdt = gas_used * effective_gas_price * eth_usdt_price
         await self.redis.hset_json(
             ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), gas_in_usdt
         )
-        logging.info(f"valid hash processed {hash=}, {gas_in_usdt=}")
+        logging.info(f"adhoc valid hash processed {hash=}, {gas_in_usdt=}")
+
+    async def process_invalid_hash(self, hash: str):
+        """
+        either hash is not involved with uniswapv3 eth/usdc pool
+        or such a hash has no resolution (valid but non-existant hash),
+        if ever this hash appears in manual scanning, it will be overwritten
+        """
+        await self.redis.hset_json(
+            ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash.lower(), "non uniswapv3 pool txn"
+        )
 
     async def process_hash(self, hash: str):
         if not is_valid_tx_hash(hash):
-            logging.info(f"skip invalid {hash=}")
+            logging.info(f"skip adhoc invalid {hash=}")
             return
         txn_receipt = await self.web3_loader.get_transaction_receipt(hash)
         is_valid_transaction = await self.web3_verifier.verify_transaction_receipt(
@@ -47,6 +59,8 @@ class LoaderProgram:
         )
         if is_valid_transaction:
             await self.process_valid_hash(hash, txn_receipt)
+        else:
+            await self.process_invalid_hash(hash)
 
     async def process_etherscan_transaction(self, hash: str, txn: dict):
         gas_price = int(txn["gasPrice"])
@@ -113,13 +127,12 @@ class LoaderProgram:
     async def subscription_loop(self):
         pubsub = self.redis.pubsub()
         await pubsub.subscribe(ETH_UNISWAPV3_USDC_ETH_POOL_ADDR)
-
-        async def _subscription_loop():
-            while await pubsub.wait_message():
-                msg = await pubsub.get_message()
-                if msg:
-                    print(f"Received message: {msg}")
-
-        print("starting")
-        await _subscription_loop()
-        print("ended")
+        logging.info(f"subcribed to channel {ETH_UNISWAPV3_USDC_ETH_POOL_ADDR}")
+        while True:
+            msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1)
+            if msg:
+                hash = json.loads(msg["data"].decode())
+                logging.info(f"Received message: {hash}")
+                # avoided batch to prevent spamming rpc node...
+                await self.process_hash(hash)
+            await asyncio.sleep(0.1)

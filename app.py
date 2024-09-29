@@ -10,14 +10,14 @@ txn_fee_client = TxnFeeClient()
 
 @app.get("/transaction-fee/{hash}", response_model=GetTransactionFeeResponse)
 async def get_transaction_fee(hash: str):
-    txn_fee_client
-    return {"hash": hash}
+    resp = await txn_fee_client.get_fee_response(hash=hash)
+    return resp
 
 
 @app.post("/transaction-fee/", response_model=PostTransactionFeeResponse)
 async def get_transaction_fees(payload: BatchTransactionFeePayload):
-    txn_fee_client
-    return {"hashes": payload.hashes}
+    resp = await txn_fee_client.get_fee_responses(payload.hashes)
+    return resp
 
 
 if __name__ == "__main__":

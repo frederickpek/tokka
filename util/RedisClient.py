@@ -31,3 +31,6 @@ class RedisClient(Redis):
     async def get_key(self, name):
         result = await self.get(name)
         return result.decode("utf-8") if isinstance(result, bytes) else result
+
+    async def publish_to_channel(self, channel: str, msg):
+        return await self.publish(channel, json.dumps(msg))
