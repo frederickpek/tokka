@@ -109,3 +109,17 @@ class LoaderProgram:
             except Exception as err:
                 logging.exception(err)
             await asyncio.sleep(self.refresh_sec)
+
+    async def subscription_loop(self):
+        pubsub = self.redis.pubsub()
+        await pubsub.subscribe(ETH_UNISWAPV3_USDC_ETH_POOL_ADDR)
+
+        async def _subscription_loop():
+            while await pubsub.wait_message():
+                msg = await pubsub.get_message()
+                if msg:
+                    print(f"Received message: {msg}")
+
+        print("starting")
+        await _subscription_loop()
+        print("ended")

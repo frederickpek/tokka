@@ -1,29 +1,22 @@
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel
+from api.payload_model import BatchTransactionFeePayload
+from api.response_model import GetTransactionFeeResponse, PostTransactionFeeResponse
+from api.TxnFeeClient import TxnFeeClient
 
 app = FastAPI()
-
-
-class BatchTransactionFeePayload(BaseModel):
-    hashes: list[str]
-
-
-class GetTransactionFeeResponse(BaseModel):
-    hash: str
-
-
-class PostTransactionFeeResponse(BaseModel):
-    hashes: list[str]
+txn_fee_client = TxnFeeClient()
 
 
 @app.get("/transaction-fee/{hash}", response_model=GetTransactionFeeResponse)
 async def get_transaction_fee(hash: str):
+    txn_fee_client
     return {"hash": hash}
 
 
 @app.post("/transaction-fee/", response_model=PostTransactionFeeResponse)
 async def get_transaction_fees(payload: BatchTransactionFeePayload):
+    txn_fee_client
     return {"hashes": payload.hashes}
 
 
