@@ -13,7 +13,7 @@ from web3.types import TxReceipt
 
 class LoaderProgram:
     def __init__(self):
-        self.redis = RedisClient(host="localhost", port=6379, db=0)
+        self.redis = RedisClient()
         self.bn_api = BinancePriceApi()
         self.etherscan_loader = EtherscanTxnLoader()
         self.web3_client = AsyncWeb3(AsyncHTTPProvider(RPC_URL))
@@ -79,6 +79,9 @@ class LoaderProgram:
                     start_block = min(
                         self.last_processed_block_number + 1, latest_block_number
                     )
+                    if start_block == latest_block_number:
+                        await asyncio.sleep(self.refresh_sec)
+                        continue
                 else:
                     start_block = latest_block_number
 

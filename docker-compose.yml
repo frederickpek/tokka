@@ -11,6 +11,8 @@ services:
     environment:
       - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
       - RPC_URL=${RPC_URL}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     command: ["python", "main.py"]
 
   app:
@@ -23,3 +25,5 @@ services:
     environment:
       - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
       - RPC_URL=${RPC_URL}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379

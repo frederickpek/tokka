@@ -1,8 +1,12 @@
 import json
 from aioredis import Redis
+from consts import REDIS_HOST, REDIS_PORT
 
 
 class RedisClient(Redis):
+    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, **kwargs):
+        super().__init__(host=host, port=port, **kwargs)
+
     async def hset_json(self, name, key, value):
         return await self.hset(name, key, json.dumps(value))
 
