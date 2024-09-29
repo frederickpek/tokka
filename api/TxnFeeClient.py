@@ -9,7 +9,7 @@ from api.response_model import GetTransactionFeeResponse, PostTransactionFeeResp
 
 class TxnFeeClient:
     def __init__(self) -> None:
-        self.retry_times = 5
+        self.retry_times = 10
         self.redis = RedisClient()
 
     async def get_fee_responses(self, hashes: list[str]) -> BaseModel:
@@ -27,7 +27,7 @@ class TxnFeeClient:
         if fee is None:
             await self.redis.publish_to_channel(ETH_UNISWAPV3_USDC_ETH_POOL_ADDR, hash)
             for _ in range(self.retry_times):
-                # try waiting for 0.5s for it to appear
+                # try waiting for 1s for it to appear
                 await asyncio.sleep(0.1)
                 if resp := await self.get_fee_response(hash, _inner=True):
                     return resp

@@ -55,6 +55,12 @@ class GetTransactionFeeResponse(BaseModel):
     msg: str = "ok"
 ```
 
+### Sample Curl
+
+```bash
+curl -X GET "http://localhost:8000/transaction-fee/0x7edc1beb3e592a7a078cddd8a3b7dd727a32f24780f632ca5ec89ccf1cc6982a"
+```
+
 ### Example Response
 
 ```json
@@ -77,6 +83,15 @@ class PostTransactionFeeResponse(BaseModel):
     fees: list[GetTransactionFeeResponse]
 ```
 
+### Sample Curl
+
+```bash
+curl -X POST "http://localhost:8000/transaction-fee/" \
+-H "accept: application/json" \
+-H "Content-Type: application/json" \
+-d '{"hashes": ["0x7edc1beb3e592a7a078cddd8a3b7dd727a32f24780f632ca5ec89ccf1cc6982a", "0x646706f493c63c7c18285163808d43648e508129fd4d200a3dd4c24a6eac354c", "0x33600e9183dde58d8b787f63af70fc9a4d458c1f5ccb53e622c90658aa6f768a", "qwer"]}'
+```
+
 ### Example Response
 
 ```json
@@ -86,6 +101,11 @@ class PostTransactionFeeResponse(BaseModel):
           "hash": "0x7edc1beb3e592a7a078cddd8a3b7dd727a32f24780f632ca5ec89ccf1cc6982a",
           "fee": "5.100978709474772", // in USDT
           "msg": "ok"
+        },
+        {
+          "hash": "0x646706f493c63c7c18285163808d43648e508129fd4d200a3dd4c24a6eac354c",
+          "fee": "",
+          "msg": "non uniswapv3 pool txn"
         },
         {
           "hash": "0x33600e9183dde58d8b787f63af70fc9a4d458c1f5ccb53e622c90658aa6f768a",
