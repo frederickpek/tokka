@@ -129,10 +129,15 @@ class LoaderProgram:
         await pubsub.subscribe(ETH_UNISWAPV3_USDC_ETH_POOL_ADDR)
         logging.info(f"subcribed to channel {ETH_UNISWAPV3_USDC_ETH_POOL_ADDR}")
         while True:
-            msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1)
-            if msg:
-                hash = json.loads(msg["data"].decode())
-                logging.info(f"Received message: {hash}")
-                # avoided batch to prevent spamming rpc node...
-                await self.process_hash(hash)
+            try:
+                msg = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=1
+                )
+                if msg:
+                    hash = json.loads(msg["data"].decode())
+                    logging.info(f"Received message: {hash}")
+                    # avoided batch to prevent spamming rpc node...
+                    await self.process_hash(hash)
+            except Exception as err:
+                logging.exception(err)
             await asyncio.sleep(0.1)
