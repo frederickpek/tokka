@@ -127,10 +127,10 @@ Testing will be done locally with python's builtin unittest framework.
 To run tests and generate a coverage report, follow these steps:
 
 ### 1. Set up a Python Virtual Environment
-Ensure you have Python 3.10 installed. Then, create a virtual environment:
+Ensure you have Python >= 3.9 installed. Then, create a virtual environment:
 
   ```bash
-  python3.10 -m virtualenv venv
+  python3 -m virtualenv venv
   ```
 
 ### 2. Activate the Virtual Environment
