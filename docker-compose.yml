@@ -8,11 +8,7 @@ services:
     build: .
     depends_on:
       - redis
-    environment:
-      - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
-      - RPC_URL=${RPC_URL}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+    env_file: .env
     command: ["python", "main.py"]
 
   app:
@@ -22,8 +18,4 @@ services:
       - redis
     ports:
       - "8000:8000"
-    environment:
-      - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
-      - RPC_URL=${RPC_URL}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+    env_file: .env
