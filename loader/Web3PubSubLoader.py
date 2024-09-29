@@ -1,17 +1,19 @@
 import json
-import asyncio
 import logging
 from consts import ETH_UNISWAPV3_USDC_ETH_POOL_ADDR
 from loader.web3_loader.Web3TxnLoader import Web3TxnLoader
 from loader.web3_loader.Web3TxnVerifier import Web3TxnVerifier
 from loader.BaseLoader import BaseLoader
 from web3.types import TxReceipt
+from aioredis.client import PubSub
 
 
 class Web3PubSubLoader(BaseLoader):
     def __init__(self):
         self.web3_loader = Web3TxnLoader(self.web3_client)
         self.web3_verifier = Web3TxnVerifier(self.web3_client)
+        self.refresh_sec = 0.1
+        self.pubsub: PubSub = None
 
     async def process_valid_hash(self, hash: str, txn_receipt: TxReceipt):
         gas_used = int(txn_receipt["gasUsed"])
@@ -41,20 +43,17 @@ class Web3PubSubLoader(BaseLoader):
         else:
             await self.process_invalid_hash(hash)
 
-    async def loop(self):
+    async def prepare(self):
         pubsub = self.redis.pubsub()
         await pubsub.subscribe(ETH_UNISWAPV3_USDC_ETH_POOL_ADDR)
+        self.pubsub = pubsub
         logging.info(f"subcribed to channel {ETH_UNISWAPV3_USDC_ETH_POOL_ADDR}")
-        while True:
-            try:
-                msg = await pubsub.get_message(
-                    ignore_subscribe_messages=True, timeout=1
-                )
-                if msg:
-                    hash = json.loads(msg["data"].decode())
-                    logging.info(f"Received message: {hash}")
-                    # avoided batch to prevent spamming rpc node...
-                    await self.process_hash(hash)
-            except Exception as err:
-                logging.exception(err)
-            await asyncio.sleep(0.1)
+
+    async def loop_fn(self):
+        msg = await self.pubsub.get_message(ignore_subscribe_messages=True, timeout=1)
+        if not msg:
+            return
+        hash = json.loads(msg["data"].decode())
+        logging.info(f"Received message: {hash}")
+        # avoided batch to prevent spamming rpc node...
+        await self.process_hash(hash)

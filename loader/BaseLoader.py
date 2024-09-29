@@ -1,3 +1,5 @@
+import logging
+import asyncio
 from abc import ABC, abstractmethod
 from util.RedisClient import RedisClient
 from loader.BinancePriceApi import BinancePriceApi
@@ -6,6 +8,7 @@ from consts import RPC_URL, ETH_UNISWAPV3_USDC_ETH_POOL_ADDR
 
 
 class BaseLoader(ABC):
+    refresh_sec = 10
     redis = RedisClient()
     bn_api = BinancePriceApi()
     web3_client = AsyncWeb3(AsyncHTTPProvider(RPC_URL))
@@ -29,9 +32,24 @@ class BaseLoader(ABC):
     def wei_to_ether(self, amount_in_wei: int) -> float:
         return float(self.web3_client.from_wei(amount_in_wei, "ether"))
 
+    async def prepare(self):
+        pass
+
     @abstractmethod
-    async def loop():
+    async def loop_fn(self):
+        """
+        The inner loop function to be implemented
+        """
+        raise NotImplementedError
+
+    async def loop(self):
         """
         The main periodic loop function of each loader module
         """
-        raise NotImplementedError
+        await self.prepare()
+        while True:
+            try:
+                await self.loop_fn()
+            except Exception as err:
+                logging.exception(err)
+            await asyncio.sleep(self.refresh_sec)
