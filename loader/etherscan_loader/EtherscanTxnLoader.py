@@ -1,4 +1,3 @@
-import asyncio
 from loader.etherscan_loader.EtherscanApi import EtherscanApi
 from consts import ETHERSCAN_API_KEY, ETH_UNISWAPV3_USDC_ETH_POOL_ADDR
 

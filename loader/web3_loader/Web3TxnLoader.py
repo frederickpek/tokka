@@ -1,7 +1,7 @@
 from web3 import AsyncWeb3
 from web3.types import TxReceipt
 from typing import Optional
-from web3.exceptions import TransactionNotFound, Web3ValueError
+from web3.exceptions import TransactionNotFound
 
 
 class Web3TxnLoader:
