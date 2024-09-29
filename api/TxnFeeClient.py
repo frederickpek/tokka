@@ -1,4 +1,3 @@
-import json
 import asyncio
 from pydantic import BaseModel
 from util import is_valid_tx_hash
@@ -12,11 +11,13 @@ class TxnFeeClient:
         self.retry_times = 10
         self.redis = RedisClient()
 
-    async def get_fee_responses(self, hashes: list[str]) -> BaseModel:
+    async def get_fee_responses(self, hashes: list[str]) -> PostTransactionFeeResponse:
         fees = await asyncio.gather(*[self.get_fee_response(hash) for hash in hashes])
         return PostTransactionFeeResponse(fees=fees)
 
-    async def get_fee_response(self, hash: str, _inner=False) -> BaseModel:
+    async def get_fee_response(
+        self, hash: str, _inner=False
+    ) -> GetTransactionFeeResponse:
         response = GetTransactionFeeResponse(hash=hash)
         if not is_valid_tx_hash(hash):
             response.msg = "invalid hash"
