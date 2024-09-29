@@ -8,6 +8,11 @@ app = FastAPI()
 txn_fee_client = TxnFeeClient()
 
 
+@app.get("/")
+async def home():
+    return "app is live"
+
+
 @app.get("/transaction-fee/{hash}", response_model=GetTransactionFeeResponse)
 async def get_transaction_fee(hash: str):
     resp = await txn_fee_client.get_fee_response(hash=hash)

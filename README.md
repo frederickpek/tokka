@@ -18,9 +18,9 @@ This application retrieves and tracks transaction fees from the Ethereum Uniswap
    cd tokka
    ```
 
-2. Create a .env file in the root directory of the project with your Ethereum API key and RPC URL:
+2. I have updated the the .env file in the root directory of the project with my free-tier Etherscan API key and Infura rpc url, feel free to substitute them with your own:
 
-    ```.env
+    ```bash
     ETHERSCAN_API_KEY=YOUR_ETHERSCAN_API_KEY
     RPC_URL=YOUR_RPC_URL
     ```
