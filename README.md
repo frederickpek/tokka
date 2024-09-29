@@ -120,3 +120,66 @@ curl -X POST "http://localhost:8000/transaction-fee/" \
     ]
 }
 ```
+
+# Testing
+
+Testing will be done locally with python's builtin unittest framework.
+To run tests and generate a coverage report, follow these steps:
+
+### 1. Set up a Python Virtual Environment
+Ensure you have Python 3.10 installed. Then, create a virtual environment:
+
+  ```bash
+  python3.10 -m virtualenv venv
+  ```
+
+### 2. Activate the Virtual Environment
+For Linux/macOS:
+  ```bash
+  source venv/bin/activate
+  ```
+For Windows:
+  ```bash
+  .\venv\Scripts\activate
+  ```
+
+### 3. Install the Required Dependencies
+Install all dependencies from the `requirements.txt` file:
+  ```bash
+  pip install -r requirements.txt
+  ```
+### 4. Run the Tests with Coverage Reporting
+To run all tests in the project and generate a coverage report, run the following command:
+
+  ```bash
+  python -m coverage run --omit="tests/*" -m unittest discover -p "test_*.py" && python -m coverage report
+  ```
+
+This command will run all test files starting with `test_` in the `tests/` directory, omitting the test files from the coverage report.
+
+### Example Output
+After running the command, you should see output similar to this:
+
+  ```
+  -------------------------------------------------------------------
+  Ran 27 tests in 0.323s
+
+  OK
+  Name                                            Stmts   Miss  Cover
+  -------------------------------------------------------------------
+  api/TxnFeeClient.py                                33      0   100%
+  api/response_model.py                               7      0   100%
+  consts.py                                           7      0   100%
+  loader/BaseLoader.py                               31      9    71%
+  loader/BinancePriceApi.py                          17      5    71%
+  loader/PeriodicLoader.py                           38      0   100%
+  loader/Web3PubSubLoader.py                         43      0   100%
+  loader/etherscan_loader/EtherscanApi.py            13      4    69%
+  loader/etherscan_loader/EtherscanTxnLoader.py      11      0   100%
+  loader/web3_loader/Web3TxnLoader.py                13      0   100%
+  loader/web3_loader/Web3TxnVerifier.py              19      0   100%
+  util/RedisClient.py                                13      4    69%
+  util/__init__.py                                    4      0   100%
+  -------------------------------------------------------------------
+  TOTAL                                             249     22    91%
+  ```
