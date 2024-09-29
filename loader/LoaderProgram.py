@@ -13,7 +13,7 @@ from web3.types import TxReceipt
 
 class LoaderProgram:
     def __init__(self):
-        self.redis = RedisClient()
+        self.redis = RedisClient(host="localhost", port=6379, db=0)
         self.bn_api = BinancePriceApi()
         self.etherscan_loader = EtherscanTxnLoader()
         self.web3_client = AsyncWeb3(AsyncHTTPProvider(RPC_URL))
@@ -65,7 +65,8 @@ class LoaderProgram:
 
     async def get_latest_block_number(self) -> int:
         latest_block = await self.web3_client.eth.get_block("latest")
-        return latest_block["number"]
+        # lag 32 blocks behind for etherscan api to backfill finalised blocks
+        return latest_block["number"] - 32
 
     async def periodic_loop(self):
         """
@@ -89,8 +90,6 @@ class LoaderProgram:
                 hash_to_transactions = dict()
                 for txn in transactions:
                     hash = str(txn["hash"]).lower()
-                    if hash in hash_to_transactions:
-                        continue
                     hash_to_transactions[hash] = txn
 
                 logging.info(

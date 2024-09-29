@@ -22,10 +22,7 @@ class RedisClient(Redis):
         }
 
     async def set_key(self, name, value, expire: int = None) -> bool:
-        if self._readonly:
-            return
-        res = await self.set(name, value, ex=expire)
-        return res
+        return await self.set(name, value, ex=expire)
 
     async def get_key(self, name):
         result = await self.get(name)
