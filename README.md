@@ -2,12 +2,29 @@
 
 This application retrieves and tracks transaction fees from the Ethereum UniswapV3 EthUsdc pool.
 
+![alt text](image.png)
+
+## Components
+
+**Periodic Loader**
+The Periodic Loader regularly scans Etherscan for new transactions related to the target pool. Once identified, the transaction hash is saved, and the fee is calculated and stored in USDT.
+
+**Price Api**
+Historical ETH/USDT price data is retrieved using Binance's public klines API, ensuring precise price information down to the nearest minute for accurate fee calculations.
+
+**Web3 Pub/Sub Loader**
+This loader subscribes to real-time updates for new transaction hashes requiring processing. It retrieves the transaction details and logs, verifying if the transaction belongs to the target pool before proceeding further.
+
+**Txn Api Client**
+The Transaction API Client handles user API requests by first attempting to serve data from the Redis cache. If a transaction hash is not cached, the client publishes it to the Web3 Pub/Sub Loader for further processing and verification.
+
+## Sample Logs
+![alt text](image-1.png)
+
 ## Requirements
 
 - Docker
 - Docker Compose
-- Python 3.10 (Packaged)
-- Redis (Packaged)
 
 ## Running the Application
 
@@ -183,3 +200,17 @@ After running the command, you should see output similar to this:
   -------------------------------------------------------------------
   TOTAL                                             249     22    91%
   ```
+
+# Design Considerations
+
+## 1. Asynchronous Design
+Python's robust support for asynchronous programming makes it a natural fit for handling I/O-intensive tasks, especially in a system with multiple processes for data collection and processing. Using async ensures non-blocking execution and optimal resource utilization, particularly in environments that demand high concurrency.
+
+## 2. Redis
+Redis offers in-memory data storage, ensuring near-instant access to frequently updated information. Its clustering and sharding capabilities provide seamless scalability as the volume of users, orders, and market data grows. Additionally, Redis functions effectively as a caching layer for API responses, significantly reducing latency.
+
+## 3. Redis Pub/Sub for Interprocess Communication
+Redis Pub/Sub is an excellent choice for real-time communication between system components. Its event-driven nature enhances responsiveness, allowing different processes to react instantly to market changes or other system events. The scalability of Pub/Sub also ensures efficient communication as the number of subscribers increases.
+
+
+By integrating asynchronous programming with Redis and its Pub/Sub capabilities, the system achieves smooth, efficient, and scalable performance, bringing all components together cohesively.
