@@ -39,6 +39,8 @@ class PeriodicLoader(BaseLoader):
 
     async def loop_fn(self):
         start_block, end_block = await self.get_block_range()
+        if start_block == self.self.last_processed_block_number:
+            return
         transactions = await self.etherscan_loader.get_transactions(
             start_block=start_block, end_block=end_block
         )
